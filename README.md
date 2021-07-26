@@ -62,16 +62,16 @@ Another solution is to wrap the generator and pre-compute anything that occurs r
 from itertools import chain
 from number_theory import is_prime
 
+# Isolate the generator from the recursion.
+def helper(n, iterable):
+    for i in range(n):
+        if is_prime(i):
+            yield i
+    yield from iterable
+
+# Isolate the recursion from the generator.
 @recursive_cache
 def generator(n):
-    # Compute `gen` first before the generator is used.
-    # Now the generator doesn't include any recursion and is safe to use.
-    def helper(gen):
-        for i in range(n):
-            if is_prime(i):
-                yield i
-        yield from gen
-    # Run the `helper` with the given recursive components.
     return helper(generator(n-1)) if n >= 0 else iter([])
 ```
 
