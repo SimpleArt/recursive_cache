@@ -1,6 +1,8 @@
 Python is well known for its conservative restriction on the amount of recursive calls one may have at any given moment. One way to work around this is to cache results to avoid recursing deeper when unnecessary. The issue with this approach is that you need to start finishing recursive calls and caching their results before the amount of recursive calls becomes too large. This module seeks to provide an alternative caching mechanism which allows deep recursion that goes well beyond the recursion limit.
 
-Other examples may be seen in the `examples.py` file.
+Examples may be seen in the `examples.py` file.
+
+# Deep Recursion
 
 ```python
 @recursive_cache
@@ -10,7 +12,7 @@ def fib(n):
 print(fib(3000))
 ```
 
-Additionally, exception traceback is reduced by default to make recursive tracebacks more understandable.
+# Iterators
 
 Iterators, such as generators, cannot be easily handled. This is because they are lazily evaluated and wait until a value is requested to begin computation. Furthermore, they are one-time-use objects which must be re-evaluated on every call. However, this does mean deep recursion with iterators is impossible. It just means that any deep recursion must be taken care of *before* the iterator starts. This might mean using `itertools.chain` and generator expressions instead of generators.
 
@@ -28,7 +30,7 @@ def generator(n):
         yield from generator(n-1)
 ```
 
-The following is a corrected version using `filter` which performs the recursion greedily while still allowing mostly lazy iterators:
+The following is a corrected version using `return` and `filter` to perform the recursion before any iteration occurs while still allowing mostly lazy iterators:
 
 ```python
 from itertools import chain
@@ -52,4 +54,61 @@ def generator(n):
     if n >= 0:
         return chain((i for i in range(n) if is_prime(i)), generator(n-1))
     return iter([])
+```
+
+Another solution is to wrap the generator and pre-compute anything that occurs recursively outside:
+
+```python
+from itertools import chain
+from number_theory import is_prime
+
+@recursive_cache
+def generator(n):
+    # Compute `gen` first before the generator is used.
+    # Now the generator doesn't include any recursion and is safe to use.
+    def helper(gen):
+        for i in range(n):
+            if is_prime(i):
+                yield i
+        yield from gen
+    # Run the `helper` with the given recursive components.
+    return helper(generator(n-1)) if n >= 0 else iter([])
+```
+
+# Exceptions/Traceback
+
+Additionally, exception traceback is reduced by default to make recursive tracebacks more understandable. Note that normally such tracebacks will be fully expanded and then truncated to the recursion limit, which is extremely unhelpful if the majority of it is the same few lines repeated thousands of times.
+
+```python
+>>> @recursive_cache
+... def foo(n):
+...     if n < 0:
+...         raise ValueError
+...     return bar(n-1)
+...
+>>> @recursive_cache
+... def bar(n):
+...     return foo(n-1)
+...
+>>> foo(3000)
+recursive_cache.InfoException:
+  ...
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  ...
+recursive_cache.InfoException: [Previous lines caused an exception in the below recursion]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  ...
+recursive_cache.InfoException: [Previous 2 lines repeated 1499 more times and caused an exception in the code below which called it]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  ...
+ValueError
 ```
