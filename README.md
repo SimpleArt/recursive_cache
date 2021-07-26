@@ -4,6 +4,8 @@ Examples may be seen in the `examples.py` file.
 
 # Deep Recursion
 
+Recursion may be done deeper than the recursion limit without modifying the recursion limit or call stack. Here's an example of a memoized fibonacci function involving recursion deeper than `functools.lru_cache` can handle:
+
 ```python
 @recursive_cache
 def fib(n):
