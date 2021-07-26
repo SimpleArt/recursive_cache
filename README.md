@@ -74,7 +74,7 @@ def helper(n, iterable):
 # Isolate the recursion from the generator.
 @recursive_cache
 def generator(n):
-    return helper(generator(n-1)) if n >= 0 else iter([])
+    return helper(n, generator(n-1)) if n >= 0 else iter([])
 ```
 
 # Exceptions/Traceback
